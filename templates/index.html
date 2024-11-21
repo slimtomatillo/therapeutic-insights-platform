@@ -62,6 +62,9 @@
         .collapse {
             transition: all 0.3s ease;
         }
+        #progress-bar {
+            width: 245px; /* Adjust this value to match your button width */
+        }
     </style>
 </head>
 <body>
@@ -113,30 +116,32 @@
                               rows="8" 
                               placeholder="Enter anonymized client details here..."
                               @input="characterCount = $event.target.value.length"
-                              :class="{ 'is-invalid': characterCount > maxChars }">
-                    </textarea>
+                              :class="{ 'is-invalid': characterCount > maxChars }"></textarea>
                 </div>
-                <button type="submit" 
-                        class="btn btn-primary" 
-                        :disabled="isGenerating || characterCount > maxChars">
-                    <span x-show="!isGenerating">Get Advice</span>
-                    <span x-show="isGenerating" class="loading-pulse">
-                        <i class="bi bi-arrow-repeat"></i> Generating...
-                    </span>
-                </button>
-            </form>
-        </div>
+                <div class="d-flex flex-column align-items-start">
+                    <button type="submit" 
+                            class="btn btn-primary" 
+                            id="submit-button"
+                            :disabled="isGenerating || characterCount > maxChars">
+                        <span x-show="!isGenerating">Get Advice & Case Conceptualization</span>
+                        <span x-show="isGenerating" class="loading-pulse">
+                            <i class="bi bi-arrow-repeat"></i> Generating...
+                        </span>
+                    </button>
 
-        <!-- Add Progress Bar -->
-        <div class="progress mt-3" id="progress-bar" style="display: none;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                 role="progressbar" 
-                 aria-valuenow="100" 
-                 aria-valuemin="0" 
-                 aria-valuemax="100" 
-                 style="width: 100%">
-                Generating advice...
-            </div>
+                    <!-- Progress bar aligned with button width -->
+                    <div class="progress mt-3" id="progress-bar" style="display: none;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             aria-valuenow="100" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100" 
+                             style="width: 100%">
+                            Generating advice...
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <!-- Results -->

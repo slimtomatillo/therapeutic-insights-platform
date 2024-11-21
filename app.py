@@ -49,7 +49,7 @@ def generate():
         # Generate actionable advice
         advice_prompt = f"""
         Based on the following conceptualization, generate 3 pieces of actionable advice for the counselor to help the client, with links to supporting research:
-        {conceptualization}
+        {conceptualization}.
         """
 
         # OpenAI Prompt for actionable advice based on conceptualization
