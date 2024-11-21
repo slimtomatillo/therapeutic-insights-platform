@@ -65,11 +65,37 @@
         #progress-bar {
             width: 300px; /* Adjust this value to match your button width */
         }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        .bi.glow-effect {
+            animation: glow 2s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes glow {
+            0% { opacity: 1; text-shadow: 0 0 10px rgba(255, 193, 7, 0.5); }
+            50% { opacity: 0.7; text-shadow: 0 0 20px rgba(255, 193, 7, 0.3); }
+            100% { opacity: 1; text-shadow: 0 0 10px rgba(255, 193, 7, 0.5); }
+        }
     </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Therapeutic Insights Platform</h1>
+        <h1 class="mb-4">
+            Therapeutic Insights Platform 
+            <i class="bi bi-lightbulb-fill text-warning glow-effect"></i>
+        </h1>
         
         <!-- Privacy Notice Dropdown -->
         <div class="mb-4">
@@ -420,5 +446,13 @@
             chevron.style.transform = chevron.style.transform === 'rotate(0deg)' ? 'rotate(180deg)' : 'rotate(0deg)';
         });
     </script>
+
+    <!-- Footer -->
+    <footer class="text-center mt-5 mb-4">
+        <hr class="my-4" style="opacity: 0.1;">
+        <small class="text-muted">
+            Developed by Alex Smith · <script>document.write(new Date().getFullYear())</script>
+        </small>
+    </footer>
 </body>
 </html>
