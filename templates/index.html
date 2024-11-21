@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Conceptualization Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Case Conceptualization Assistant</h1>
+        
+        <!-- Input Form -->
+        <form id="concept-form">
+            <div class="mb-3">
+                <label for="userInput" class="form-label">Describe the client:</label>
+                <textarea class="form-control" id="userInput" rows="5" placeholder="Enter details here..."></textarea>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="generateConcept()">Get Advice</button>
+        </form>
+
+        <!-- Add Progress Bar -->
+        <div class="progress mt-3" id="progress-bar" style="display: none;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" 
+                 aria-valuenow="100" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100" 
+                 style="width: 100%">
+                Generating advice...
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="mt-5" style="display: none;">
+            <h2>Results</h2>
+            <p>
+                <strong>Case Conceptualization:</strong>
+                <span id="concept-buttons" style="display: none;">
+                    <button class="btn btn-sm btn-primary ms-2" onclick="viewConceptualization()">View</button>
+                    <button class="btn btn-sm btn-secondary ms-2" onclick="downloadConceptualization()">Download</button>
+                </span>
+            </p>
+            <div id="conceptualization" style="display: none;"></div>
+            <p><strong>Advice:</strong></p>
+            <p id="advice"></p>
+            <button class="btn btn-sm btn-secondary" id="advice-download" style="display: none;" onclick="downloadAdvice()">Download</button>
+        </div>
+        
+        <!-- Research Suggestions -->
+        <h2 class="mt-5">Research Suggestions</h2>
+        <form id="research-form">
+            <div class="mb-3">
+                <label for="topic" class="form-label">
+                    Enter a topic:
+                    <i class="bi bi-info-circle-fill ms-1" 
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right"
+                       title="For best results, include specific details such as: therapeutic approach, condition/symptoms, age group, or setting"
+                       style="cursor: help; color: #6c757d;">
+                    </i>
+                </label>
+                <input type="text" class="form-control" id="topic" placeholder="e.g. CBT for anxiety in adolescents">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="fetchResearch()">Get Research</button>
+        </form>
+        <div id="research-results" class="mt-3"></div>
+        <button class="btn btn-sm btn-secondary mt-2" onclick="downloadResearch()" id="download-research" style="display: none;">Download</button>
+    </div>
+
+    <!-- Add Modal for View functionality -->
+    <div class="modal fade" id="conceptModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Case Conceptualization</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modal-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        async function generateConcept() {
+            try {
+                // Show progress bar and hide any existing results
+                document.getElementById("progress-bar").style.display = "block";
+                document.getElementById("results").style.display = "none";
+                
+                const userInput = document.getElementById("userInput").value;
+                const response = await fetch("/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_input: userInput })
+                });
+                
+                const data = await response.json();
+                
+                // Hide progress bar and show results
+                document.getElementById("progress-bar").style.display = "none";
+                document.getElementById("conceptualization").innerHTML = marked.parse(data.conceptualization);
+                document.getElementById("advice").innerHTML = marked.parse(data.advice);
+                document.getElementById("results").style.display = "block";
+                document.getElementById("concept-buttons").style.display = "inline";
+                document.getElementById("advice-download").style.display = "inline";
+            } catch (error) {
+                // Hide progress bar and show error
+                document.getElementById("progress-bar").style.display = "none";
+                alert("An error occurred while generating advice. Please try again.");
+            }
+        }
+
+        async function fetchResearch() {
+            const topic = document.getElementById("topic").value;
+            const response = await fetch("/research", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ topic })
+            });
+            const results = await response.json();
+            let output = "<ul>";
+            results.forEach((res) => {
+                output += `<li><a href="${res.url}" target="_blank">${res.title}</a>: ${res.summary}</li>`;
+            });
+            output += "</ul>";
+            document.getElementById("research-results").innerHTML = output;
+            document.getElementById("download-research").style.display = "block";
+        }
+
+        function viewConceptualization() {
+            const content = document.getElementById("conceptualization").innerHTML;
+            document.getElementById("modal-content").innerHTML = content;
+            new bootstrap.Modal(document.getElementById("conceptModal")).show();
+        }
+
+        function downloadConceptualization() {
+            const content = document.getElementById("conceptualization").textContent;
+            downloadFile(content, "case_conceptualization.txt");
+        }
+
+        function downloadAdvice() {
+            const content = document.getElementById("advice").textContent;
+            downloadFile(content, "advice.txt");
+        }
+
+        function downloadResearch() {
+            const content = document.getElementById("research-results").textContent;
+            downloadFile(content, "research_suggestions.txt");
+        }
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: "text/plain" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Initialize all tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+</body>
+</html>
