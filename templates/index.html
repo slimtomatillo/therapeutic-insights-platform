@@ -63,7 +63,7 @@
             transition: all 0.3s ease;
         }
         #progress-bar {
-            width: 245px; /* Adjust this value to match your button width */
+            width: 300px; /* Adjust this value to match your button width */
         }
     </style>
 </head>
@@ -96,6 +96,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- Main title -->
+        <h2 class="mb-4">Advice & Case Conceptualization</h2>
 
         <!-- Input Form -->
         <div x-data="{ 
@@ -137,16 +140,15 @@
                              aria-valuemin="0" 
                              aria-valuemax="100" 
                              style="width: 100%">
-                            Generating advice...
+                            Generating...
                         </div>
                     </div>
                 </div>
             </form>
         </div>
 
-        <!-- Results -->
+        <!-- Results section -->
         <div id="results" class="mt-5" style="display: none;">
-            <h2>Results</h2>
             <p>
                 <strong>Case Conceptualization:</strong>
                 <span id="concept-buttons" style="display: none;">
@@ -158,6 +160,16 @@
                 </span>
             </p>
             <div id="conceptualization" style="display: none;"></div>
+            
+            <!-- Moved missing info section here -->
+            <div id="missing-info" class="form-text mt-3 mb-4" style="display: none;">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>For a more complete conceptualization, consider including:</strong>
+                    <span id="missing-info-content"></span>
+                </small>
+            </div>
+
             <p><strong>Advice:</strong></p>
             <p id="advice"></p>
             <div class="btn-group">
@@ -168,7 +180,7 @@
             </div>
         </div>
         
-        <!-- Research Suggestions -->
+        <!-- Research section -->
         <h2 class="mt-5">Research Suggestions</h2>
         <form id="research-form">
             <div class="mb-3">
@@ -219,11 +231,12 @@
     <script>
         async function generateConcept() {
             try {
+                const userInput = document.getElementById("userInput").value;
+                
                 // Show progress bar and hide any existing results
                 document.getElementById("progress-bar").style.display = "block";
                 document.getElementById("results").style.display = "none";
                 
-                const userInput = document.getElementById("userInput").value;
                 const response = await fetch("/generate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -239,7 +252,20 @@
                 document.getElementById("results").style.display = "block";
                 document.getElementById("concept-buttons").style.display = "inline-block";
                 document.getElementById("advice-download").style.display = "inline-block";
+                
+                // Display missing info if available
+                const missingInfoDiv = document.getElementById("missing-info");
+                const missingInfoContent = document.getElementById("missing-info-content");
+                
+                if (data.missing_info && data.missing_info.trim()) {
+                    missingInfoContent.innerHTML = marked.parse(data.missing_info);
+                    missingInfoDiv.style.display = "block";
+                } else {
+                    missingInfoDiv.style.display = "none";
+                }
+                
             } catch (error) {
+                console.error("Error:", error);
                 // Hide progress bar and show error
                 document.getElementById("progress-bar").style.display = "none";
                 alert("An error occurred while generating advice. Please try again.");

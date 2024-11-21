@@ -23,7 +23,7 @@ def generate():
     try:
         data = request.get_json()
         if not data or "user_input" not in data:
-            return jsonify({"error": "Invalid input. Please provide 'user_input' in JSON format."}), 400
+            return jsonify({"error": "Invalid input"}), 400
 
         user_input = data["user_input"]
 
@@ -39,37 +39,40 @@ def generate():
                 - Case Formulation
                 - Treatment Plan
 
+                After the conceptualization, please add a section titled "MISSING INFO:" that lists any key demographic or clinical information that would be helpful for a more complete conceptualization. Format this as a bullet list.
+
                 Input: {user_input}"""}
             ]
         )
 
-        # Extract the response content
-        conceptualization = conceptualization_response.choices[0].message.content
+        # Parse the response to separate conceptualization and missing info
+        response_text = conceptualization_response.choices[0].message.content
+        parts = response_text.split("MISSING INFO:")
+        conceptualization = parts[0].strip()
+        missing_info = parts[1].replace("*", "").strip() if len(parts) > 1 else ""
+        print(f"Missing info: {missing_info}")
 
-        # Generate actionable advice
-        advice_prompt = f"""
-        Based on the following conceptualization, generate 3 pieces of actionable advice for the counselor to help the client, with links to supporting research:
-        {conceptualization}.
-        """
-
-        # OpenAI Prompt for actionable advice based on conceptualization
+        # Generate advice...
         advice_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a mental health counselor."},
-                {"role": "user", "content": f"""{advice_prompt}"""}
+                {"role": "user", "content": f"""Based on the following conceptualization, generate 3 pieces of actionable advice for the counselor to help the client:
+                {conceptualization}"""}
             ]
         )
 
-        # Extract the response content
         advice = advice_response.choices[0].message.content
 
-        return jsonify({"conceptualization": conceptualization, "advice": advice})
+        return jsonify({
+            "conceptualization": conceptualization,
+            "advice": advice,
+            "missing_info": missing_info
+        })
 
     except Exception as e:
-        # Log the error for debugging
         print(f"Error in /generate route: {e}")
-        return jsonify({"error": str(e)}), 500  # Return the actual error message
+        return jsonify({"error": str(e)}), 500
 
 # Route: Fetch and Summarize Research
 @app.route("/research", methods=["POST"])
