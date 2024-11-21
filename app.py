@@ -91,30 +91,45 @@ def research():
 
         papers = response.json().get("data", [])
         
-        research_results = []
-        for paper in papers:
-            research_results.append({
-                "title": paper.get("title", "No title available"),
-                "url": paper.get("url", "#"),
-                "summary": paper.get("abstract", "No abstract available")[:200] + "..." # Truncate long abstracts
-            })
-        
-        # If no results found
-        if not research_results:
-            research_results.append({
+        # If no papers found, return specific message
+        if not papers:
+            return jsonify([{
                 "title": "No Results",
                 "url": "#",
-                "summary": "No research papers found for this topic."
-            })
+                "summary": f"No research papers found for '{topic}'. Try modifying your search terms."
+            }])
+        
+        research_results = []
+        for paper in papers:
+            # Handle missing data gracefully
+            title = paper.get("title", "No title available")
+            url = paper.get("url", "#")
+            abstract = paper.get("abstract")
+            
+            # Only add papers with meaningful content
+            if title and title != "No title available":
+                research_results.append({
+                    "title": title,
+                    "url": url,
+                    "summary": abstract[:200] + "..." if abstract else "No abstract available"
+                })
+        
+        # If no valid results after filtering
+        if not research_results:
+            return jsonify([{
+                "title": "No Results",
+                "url": "#",
+                "summary": f"No valid research results found for '{topic}'. Please try different search terms."
+            }])
         
         return jsonify(research_results)
 
     except Exception as e:
-        print(f"Error in research route: {str(e)}")
+        print(f"Error in research route: {str(e)}")  # Log the error
         return jsonify([{
-            "title": "Error",
+            "title": "Search Error",
             "url": "#",
-            "summary": f"An error occurred: {str(e)}"
+            "summary": "We encountered an error while searching. Please try different search terms or try again later."
         }])
 
 # Run the app

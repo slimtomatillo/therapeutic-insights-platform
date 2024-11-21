@@ -7,19 +7,125 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .loading-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .research-card {
+            transition: transform 0.2s;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .research-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .btn-group {
+            display: inline-flex;
+            gap: 0.5rem;
+        }
+        .btn i {
+            margin-right: 0.25rem;
+        }
+        /* Override Bootstrap's info colors */
+        .btn-info {
+            background-color: #cff4fc;
+            border-color: #b6effb;
+            color: #055160;
+        }
+        
+        .btn-info:hover {
+            background-color: #b6effb;
+            border-color: #9ee5f7;
+            color: #055160;
+        }
+        
+        .collapse {
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
         <h1 class="mb-4">Therapeutic Insights Platform</h1>
         
-        <!-- Input Form -->
-        <form id="concept-form">
-            <div class="mb-3">
-                <label for="userInput" class="form-label">Describe the client:</label>
-                <textarea class="form-control" id="userInput" rows="5" placeholder="Enter details here..."></textarea>
+        <!-- Privacy Notice Dropdown -->
+        <div class="mb-4">
+            <button class="btn btn-info d-flex align-items-center w-100 justify-content-between" 
+                    type="button" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#privacyNotice" 
+                    aria-expanded="false" 
+                    aria-controls="privacyNotice">
+                <span class="d-flex align-items-center">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Privacy & Data Usage Notice
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </button>
+            
+            <div class="collapse" id="privacyNotice">
+                <div class="alert alert-info mt-2 mb-0">
+                    <ul class="mb-0">
+                        <li><strong>Anonymize Your Data:</strong> Please remove all identifying information including names, specific locations, and any other personally identifiable details.</li>
+                        <li><strong>Data Processing:</strong> While this application doesn't store your input, the information is processed through OpenAI's API.</li>
+                        <li><strong>Data Usage:</strong> Review OpenAI's <a href="https://openai.com/policies/terms-of-use" target="_blank" class="alert-link">Terms of Use <i class="bi bi-box-arrow-up-right ms-1"></i></a> and <a href="https://openai.com/policies/privacy-policy" target="_blank" class="alert-link">Privacy Policy <i class="bi bi-box-arrow-up-right ms-1"></i></a> to understand how your input may be used.</li>
+                    </ul>
+                </div>
             </div>
-            <button type="button" class="btn btn-primary" onclick="generateConcept()">Get Advice</button>
-        </form>
+        </div>
+
+        <!-- Input Form -->
+        <div x-data="{ 
+            isGenerating: false, 
+            characterCount: 0,
+            maxChars: 6000 
+        }">
+            <form id="concept-form" @submit.prevent="generateConcept()">
+                <div class="mb-3">
+                    <label for="userInput" class="form-label d-flex justify-content-between">
+                        <span>Describe the client:</span>
+                        <small x-text="characterCount + '/' + maxChars" 
+                               :class="characterCount > maxChars ? 'text-danger' : 'text-muted'">
+                        </small>
+                    </label>
+                    <textarea class="form-control" 
+                              id="userInput" 
+                              rows="8" 
+                              placeholder="Enter anonymized client details here..."
+                              @input="characterCount = $event.target.value.length"
+                              :class="{ 'is-invalid': characterCount > maxChars }">
+                    </textarea>
+                </div>
+                <button type="submit" 
+                        class="btn btn-primary" 
+                        :disabled="isGenerating || characterCount > maxChars">
+                    <span x-show="!isGenerating">Get Advice</span>
+                    <span x-show="isGenerating" class="loading-pulse">
+                        <i class="bi bi-arrow-repeat"></i> Generating...
+                    </span>
+                </button>
+            </form>
+        </div>
 
         <!-- Add Progress Bar -->
         <div class="progress mt-3" id="progress-bar" style="display: none;">
@@ -40,13 +146,21 @@
                 <strong>Case Conceptualization:</strong>
                 <span id="concept-buttons" style="display: none;">
                     <button class="btn btn-sm btn-primary ms-2" onclick="viewConceptualization()">View</button>
+                    <button class="btn btn-sm btn-info ms-2" onclick="copyConceptualization(this)">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
                     <button class="btn btn-sm btn-secondary ms-2" onclick="downloadConceptualization()">Download</button>
                 </span>
             </p>
             <div id="conceptualization" style="display: none;"></div>
             <p><strong>Advice:</strong></p>
             <p id="advice"></p>
-            <button class="btn btn-sm btn-secondary" id="advice-download" style="display: none;" onclick="downloadAdvice()">Download</button>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-info" onclick="copyAdvice(this)">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+                <button class="btn btn-sm btn-secondary ms-2" id="advice-download" style="display: none;" onclick="downloadAdvice()">Download</button>
+            </div>
         </div>
         
         <!-- Research Suggestions -->
@@ -66,8 +180,19 @@
             </div>
             <button type="button" class="btn btn-primary" onclick="fetchResearch()">Get Research</button>
         </form>
-        <div id="research-results" class="mt-3"></div>
-        <button class="btn btn-sm btn-secondary mt-2" onclick="downloadResearch()" id="download-research" style="display: none;">Download</button>
+        <div id="research-results" class="mt-3">
+            <template x-data x-for="result in results" :key="result.title">
+                <div class="research-card animate__animated animate__fadeIn">
+                    <h5 class="mb-2" x-text="result.title"></h5>
+                    <p class="mb-2" x-text="result.summary"></p>
+                    <a :href="result.url" 
+                       class="btn btn-sm btn-outline-primary" 
+                       target="_blank">
+                        Read More <i class="bi bi-box-arrow-up-right ms-1"></i>
+                    </a>
+                </div>
+            </template>
+        </div>
     </div>
 
     <!-- Add Modal for View functionality -->
@@ -107,8 +232,8 @@
                 document.getElementById("conceptualization").innerHTML = marked.parse(data.conceptualization);
                 document.getElementById("advice").innerHTML = marked.parse(data.advice);
                 document.getElementById("results").style.display = "block";
-                document.getElementById("concept-buttons").style.display = "inline";
-                document.getElementById("advice-download").style.display = "inline";
+                document.getElementById("concept-buttons").style.display = "inline-block";
+                document.getElementById("advice-download").style.display = "inline-block";
             } catch (error) {
                 // Hide progress bar and show error
                 document.getElementById("progress-bar").style.display = "none";
@@ -117,20 +242,80 @@
         }
 
         async function fetchResearch() {
-            const topic = document.getElementById("topic").value;
-            const response = await fetch("/research", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ topic })
-            });
-            const results = await response.json();
-            let output = "<ul>";
-            results.forEach((res) => {
-                output += `<li><a href="${res.url}" target="_blank">${res.title}</a>: ${res.summary}</li>`;
-            });
-            output += "</ul>";
-            document.getElementById("research-results").innerHTML = output;
-            document.getElementById("download-research").style.display = "block";
+            const resultsDiv = document.getElementById("research-results");
+            const topic = document.getElementById("topic").value.trim();
+            
+            // Validate input
+            if (topic.length < 3) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-warning animate__animated animate__fadeIn">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Please enter at least 3 characters to search.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show loading state
+            resultsDiv.innerHTML = `
+                <div class="text-center loading-pulse">
+                    <i class="bi bi-search fs-1"></i>
+                    <p>Searching research papers...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch("/research", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const results = await response.json();
+                
+                // Special handling for no results or error messages
+                if (results.length === 1 && (!results[0].url || results[0].url === "#")) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-warning animate__animated animate__fadeIn">
+                            <i class="bi bi-info-circle me-2"></i>
+                            ${results[0].summary}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Display valid results
+                let output = "";
+                results.forEach((res) => {
+                    output += `
+                        <div class="research-card animate__animated animate__fadeIn">
+                            <h5 class="mb-2">${res.title}</h5>
+                            <p class="mb-2">${res.summary}</p>
+                            <a href="${res.url}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               target="_blank"
+                               ${res.url === "#" ? 'disabled' : ''}>
+                                Read More <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = output;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger animate__animated animate__fadeIn">
+                        <i class="bi bi-exclamation-triangle me-2"></i> 
+                        Unable to complete the search at this time.
+                        <br><small class="mt-2 d-block">Please try again later or contact support if the problem persists.</small>
+                    </div>
+                `;
+            }
         }
 
         function viewConceptualization() {
@@ -149,11 +334,6 @@
             downloadFile(content, "advice.txt");
         }
 
-        function downloadResearch() {
-            const content = document.getElementById("research-results").textContent;
-            downloadFile(content, "research_suggestions.txt");
-        }
-
         function downloadFile(content, filename) {
             const blob = new Blob([content], { type: "text/plain" });
             const url = window.URL.createObjectURL(blob);
@@ -164,11 +344,50 @@
             window.URL.revokeObjectURL(url);
         }
 
+        async function copyConceptualization(button) {
+            const content = document.getElementById("conceptualization").textContent;
+            try {
+                await navigator.clipboard.writeText(content);
+                showCopyFeedback(button, 'Copied!');
+            } catch (err) {
+                showCopyFeedback(button, 'Failed to copy', true);
+            }
+        }
+
+        async function copyAdvice(button) {
+            const content = document.getElementById("advice").textContent;
+            try {
+                await navigator.clipboard.writeText(content);
+                showCopyFeedback(button, 'Copied!');
+            } catch (err) {
+                showCopyFeedback(button, 'Failed to copy', true);
+            }
+        }
+
+        function showCopyFeedback(button, message, isError = false) {
+            const originalText = button.innerHTML;
+            button.innerHTML = message;
+            button.classList.add(isError ? 'btn-danger' : 'btn-success');
+            button.classList.remove('btn-info');
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.classList.remove(isError ? 'btn-danger' : 'btn-success');
+                button.classList.add('btn-info');
+            }, 2000);
+        }
+
         // Initialize all tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
+
+        document.querySelector('[data-bs-toggle="collapse"]').addEventListener('click', function() {
+            const chevron = this.querySelector('.bi-chevron-down');
+            chevron.style.transition = 'transform 0.3s ease';
+            chevron.style.transform = chevron.style.transform === 'rotate(0deg)' ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
     </script>
 </body>
 </html>
