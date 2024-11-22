@@ -26,12 +26,22 @@ def generate():
             return jsonify({"error": "Invalid input"}), 400
 
         user_input = data["user_input"]
+        
+        # Add input validation
+        if len(user_input.strip()) < 50:  # Adjust minimum length as needed
+            return jsonify({
+                "conceptualization": "Input too brief for meaningful analysis",
+                "advice": "Please provide more detailed client information to receive meaningful advice.",
+                "missing_info": "• Basic client description\n• Presenting problems\n• Current situation\n• Relevant background"
+            })
 
-        # OpenAI Prompt for Case Conceptualization
+        # OpenAI Prompt - Updated system message to be more specific
         conceptualization_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a mental health counselor."},
+                {"role": "system", "content": """You are a mental health counselor. 
+                If the client information provided is too vague or insufficient, respond with 'INSUFFICIENT_INFO' instead of generating a conceptualization.
+                Only provide a conceptualization if there's enough meaningful client information to work with."""},
                 {"role": "user", "content": f"""Based on the following description, generate a structured case conceptualization including:
                 - Presenting Problem
                 - Relevant History
@@ -45,13 +55,21 @@ def generate():
             ]
         )
 
-        # Parse the response to separate conceptualization and missing info
+        # Check for insufficient information response
         response_text = conceptualization_response.choices[0].message.content
+        if "INSUFFICIENT_INFO" in response_text:
+            return jsonify({
+                "conceptualization": "Insufficient information provided",
+                "advice": "Please provide more detailed client information to receive meaningful advice.",
+                "missing_info": "• Presenting problems\n• Symptoms\n• Client history\n• Current situation"
+            })
+
+        # Parse the response to separate conceptualization and missing info
         parts = response_text.split("MISSING INFO:")
-        conceptualization = parts[0].strip()
+        conceptualization = parts[0].replace("*", "").strip()
         missing_info = parts[1].replace("*", "").strip() if len(parts) > 1 else ""
 
-        # Generate advice...
+        # Only generate advice if we have a valid conceptualization
         advice_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
