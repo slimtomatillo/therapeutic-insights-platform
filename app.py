@@ -50,7 +50,6 @@ def generate():
         parts = response_text.split("MISSING INFO:")
         conceptualization = parts[0].strip()
         missing_info = parts[1].replace("*", "").strip() if len(parts) > 1 else ""
-        print(f"Missing info: {missing_info}")
 
         # Generate advice...
         advice_response = client.chat.completions.create(
