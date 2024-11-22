@@ -135,7 +135,6 @@
             <form id="concept-form" @submit.prevent="generateConcept()">
                 <div class="mb-3">
                     <label for="userInput" class="form-label d-flex justify-content-between">
-                        <span>Describe the client:</span>
                         <small x-text="characterCount + '/' + maxChars" 
                                :class="characterCount > maxChars ? 'text-danger' : 'text-muted'">
                         </small>
