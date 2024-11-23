@@ -100,6 +100,7 @@ Developed by Alex Smith
 ## Acknowledgments
 - OpenAI for API services
 - Bootstrap for UI components
+- PAIR dataset from University of Michigan (https://lit.eecs.umich.edu/downloads.html#PAIR)
 - Other libraries and frameworks used
 
 ## Additional Setup
